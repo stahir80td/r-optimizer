@@ -1,0 +1,130 @@
+{
+  "name": "Cover Letter & Referral Email Generator",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "cover-letter-generator",
+        "authentication": "basicAuth",
+        "responseMode": "lastNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -352,
+        -16
+      ],
+      "id": "webhook-node",
+      "name": "Webhook",
+      "webhookId": "cover-letter-generator",
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "hUkiVcDSZm1k969g",
+          "name": "Unnamed credential"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro-latest:generateContent?key=[]",
+        "sendBody": true,
+        "specifyBody": "=json",
+        "bodyParameters": {
+          "parameters": [
+            {}
+          ]
+        },
+        "jsonBody": "={\n  \"contents\": [{\n    \"parts\": [{\n      \"text\": {{ JSON.stringify($json.prompt) }}\n    }]\n  }],\n  \"generationConfig\": {\n    \"temperature\": 0.8,\n    \"maxOutputTokens\": 6000\n  }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        144,
+        -16
+      ],
+      "id": "gemini-api",
+      "name": "Request Gemini API",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract data from webhook\nconst optimizedResume = $input.first().json.body.optimizedResume || \"\";\nconst originalResume = $input.first().json.body.originalResume || \"\";\nconst jobDescription = $input.first().json.body.jobDescription || \"\";\nconst companyName = $input.first().json.body.companyName || \"Hiring Team\";\nconst roleName = $input.first().json.body.roleName || \"this position\";\nconst matchingSkills = $input.first().json.body.matchingSkills || [];\n\n// Extract key requirements from job description (first 3-4 main points)\nconst reqSection = jobDescription.match(/qualifications|requirements|must have|you have|ideal candidate/i);\nconst keyRequirements = reqSection ? \n  jobDescription.substring(jobDescription.indexOf(reqSection[0]), jobDescription.indexOf(reqSection[0]) + 500) : \n  jobDescription.substring(0, 500);\n\n// Prepare the prompt for cover letter and referral email\nreturn {\n  prompt: `You are a professional resume writer creating application documents. Generate a cover letter and referral email based on this information:\n\nCandidate's Optimized Resume:\n${optimizedResume}\n\nJob Description:\n${jobDescription.substring(0, 2500)}\n\nCompany: ${companyName}\nRole: ${roleName}\n\nKey Matching Skills:\n${matchingSkills.map(s => s.skill).join(', ')}\n\nIMPORTANT FORMATTING RULES:\n\nFor the COVER LETTER:\n- Address it to \"${companyName} Hiring Team\" or \"Dear ${companyName} Team\"\n- Start with: \"I'm writing to apply for the ${roleName} position at ${companyName}.\"\n- Structure: \n  1. Opening paragraph: Express interest and briefly state years of experience and main qualification\n  2. \"Why I'm a strong fit:\" section with 2-3 specific paragraphs, each focusing on a key requirement\n  3. Use specific examples and metrics from the resume\n  4. Include a section about collaboration/partnership if relevant to the role\n  5. Close with enthusiasm about the company's mission and impact\n- Keep professional but conversational tone\n- Maximum 400 words\n- Include line breaks between paragraphs\n\nFor the REFERRAL EMAIL:\n- Subject line: \"Referral for ${roleName} - [Candidate Name]\"\n- Address as \"Dear Hiring Manager,\"\n- Structure:\n  1. Brief intro: \"I am writing to introduce and refer [Candidate Name] for the ${roleName} position\"\n  2. \"About [Candidate]:\" section with brief overview\n  3. 3-4 key qualification highlights with specific metrics\n  4. \"Why ${companyName}?\" section explaining fit\n  5. Next steps with contact information\n- Professional, third-person perspective\n- Maximum 350 words\n- Include placeholder [Candidate Name] and [Your Name] for personalization\n\nReturn ONLY valid JSON (no markdown, no backticks):\n{\n  \"coverLetter\": \"<Full cover letter text with proper line breaks using \\\\n\\\\n between paragraphs>\",\n  \"referralEmail\": \"<Full referral email text with proper line breaks using \\\\n\\\\n between sections>\"\n}`\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -96,
+        -16
+      ],
+      "id": "prepare-prompt",
+      "name": "Prepare Prompt"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract and parse response from Gemini\nconst response = $input.first().json;\nlet rawText = '';\n\n// Extract text from response\ntry {\n  if (response.candidates && response.candidates[0]) {\n    const candidate = response.candidates[0];\n    if (candidate.content && candidate.content.parts && candidate.content.parts[0]) {\n      rawText = candidate.content.parts[0].text;\n    }\n  }\n} catch (e) {\n  return {\n    success: false,\n    error: 'Invalid response structure from Gemini',\n    timestamp: new Date().toISOString()\n  };\n}\n\nif (!rawText) {\n  return {\n    success: false,\n    error: 'No text content in response',\n    timestamp: new Date().toISOString()\n  };\n}\n\n// Clean the text\nlet cleanedText = rawText.trim();\n\n// Remove markdown code blocks\ncleanedText = cleanedText.replace(/```json\\s*/gi, '');\ncleanedText = cleanedText.replace(/```\\s*/gi, '');\n\n// Find JSON boundaries\nconst jsonStart = cleanedText.indexOf('{');\nconst jsonEnd = cleanedText.lastIndexOf('}');\n\nif (jsonStart === -1 || jsonEnd === -1) {\n  return {\n    success: false,\n    error: 'No JSON found in response',\n    rawResponse: rawText,\n    timestamp: new Date().toISOString()\n  };\n}\n\n// Extract JSON string\nlet jsonString = cleanedText.substring(jsonStart, jsonEnd + 1);\n\n// Fix escaped newlines to be proper JSON\njsonString = jsonString.replace(/\\\\n/g, '\\n');\n\n// Try to parse\nlet documents;\ntry {\n  documents = JSON.parse(jsonString);\n} catch (parseError) {\n  // Try to extract fields manually if parse fails\n  try {\n    const coverLetterMatch = jsonString.match(/\"coverLetter\"\\s*:\\s*\"([^\"]+(?:\\\\\"[^\"]+)*)\"/s);\n    const referralEmailMatch = jsonString.match(/\"referralEmail\"\\s*:\\s*\"([^\"]+(?:\\\\\"[^\"]+)*)\"/s);\n    \n    documents = {\n      coverLetter: coverLetterMatch ? coverLetterMatch[1].replace(/\\\\n/g, '\\n').replace(/\\\\\"/g, '\"') : '',\n      referralEmail: referralEmailMatch ? referralEmailMatch[1].replace(/\\\\n/g, '\\n').replace(/\\\\\"/g, '\"') : ''\n    };\n  } catch (e) {\n    return {\n      success: false,\n      error: 'Failed to parse documents: ' + parseError.message,\n      rawResponse: rawText,\n      timestamp: new Date().toISOString()\n    };\n  }\n}\n\n// Ensure both documents exist\nif (!documents.coverLetter || !documents.referralEmail) {\n  return {\n    success: false,\n    error: 'Missing cover letter or referral email',\n    documents: documents,\n    timestamp: new Date().toISOString()\n  };\n}\n\n// Return successful response\nreturn {\n  success: true,\n  documents: {\n    coverLetter: documents.coverLetter,\n    referralEmail: documents.referralEmail\n  },\n  timestamp: new Date().toISOString()\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        352,
+        -16
+      ],
+      "id": "process-response",
+      "name": "Process Response"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Prepare Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Request Gemini API": {
+      "main": [
+        [
+          {
+            "node": "Process Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Prompt": {
+      "main": [
+        [
+          {
+            "node": "Request Gemini API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "cover-letter-v1",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "70b10e977545166bf9a23fa9d42b88e612aab0525667744577e8414b6f5684f1"
+  },
+  "id": "CoverLetterGenerator",
+  "tags": []
+}

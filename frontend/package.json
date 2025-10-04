@@ -1,6 +1,0 @@
-{
-  "homepage": ".",
-  "scripts": {
-    "build": "REACT_APP_N8N_URL=https://resume-optimizer-n8n.onrender.com react-scripts build"
-  }
-}

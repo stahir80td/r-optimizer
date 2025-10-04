@@ -12,20 +12,24 @@ const App = () => {
   const [companyName, setCompanyName] = useState('');
   const [roleName, setRoleName] = useState('');
   const [analysis, setAnalysis] = useState(null);
+  const [applicationDocs, setApplicationDocs] = useState(null);
   const [editedSections, setEditedSections] = useState({
     executiveSummary: '',
     coreCompetencies: '',
     keyAchievements: '',
     technologiesLanguages: '',
-    rewrittenExperience: '',
+    rewrittenExperience: ''
+  });
+  const [editedDocs, setEditedDocs] = useState({
     coverLetter: '',
     referralEmail: ''
   });
   const [loading, setLoading] = useState(false);
+  const [loadingDocs, setLoadingDocs] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [copied, setCopied] = useState(false);
-  const [activeTab, setActiveTab] = useState('sections'); // sections, cover, email
+  const [expandedSection, setExpandedSection] = useState('resume'); // resume, cover, email
   const fileInputRef = useRef(null);
 
   // Apply dark background to body
@@ -78,7 +82,7 @@ const App = () => {
     }
   };
 
-  // Updated analyzeResume function with better error handling
+  // Analyze resume - Step 1
   const analyzeResume = async () => {
     if (!resumeText || !jobDescription) {
       setError('Please provide both resume and job description');
@@ -88,6 +92,7 @@ const App = () => {
     setLoading(true);
     setError('');
     setSuccess('');
+    setApplicationDocs(null); // Reset application docs when re-analyzing
 
     try {
       const response = await fetch(
@@ -112,23 +117,18 @@ const App = () => {
       
       let analysisData = null;
       
-      // Check if we have a successful response with analysis data
       if (data.success && data.analysis) {
         analysisData = data.analysis;
       } else if (data.error) {
-        // Handle error response from API
         setError(`API Error: ${data.error}`);
         return;
       } else if (data.partialData) {
-        // Try to use partial data if available
         analysisData = data.partialData;
       }
       
-      // Validate we have the minimum required fields
       if (analysisData && (analysisData.matchScore !== undefined || analysisData.executiveSummary)) {
         setAnalysis(analysisData);
         
-        // Set the sections with the parsed data - fixed character encoding
         setEditedSections({
           executiveSummary: analysisData.executiveSummary || '',
           coreCompetencies: Array.isArray(analysisData.coreCompetencies) 
@@ -136,15 +136,13 @@ const App = () => {
             : analysisData.coreCompetencies || '',
           keyAchievements: analysisData.keyAchievements || '',
           technologiesLanguages: analysisData.technologiesLanguages || '',
-          rewrittenExperience: analysisData.rewrittenExperience || '// Last 2 positions will be rewritten here',
-          coverLetter: analysisData.coverLetter || '',
-          referralEmail: analysisData.referralEmail || ''
+          rewrittenExperience: analysisData.rewrittenExperience || '// Last 2 positions will be rewritten here'
         });
         
-        setSuccess('Analysis complete! Navigate tabs to see all generated content.');
+        setSuccess('Resume analysis complete! You can now generate cover letter and referral email.');
+        setExpandedSection('resume');
       } else {
-        // Fallback error message
-        setError('The AI response was incomplete. Please try again or check your n8n workflow.');
+        setError('The AI response was incomplete. Please try again.');
         console.error('Invalid analysis data structure:', data);
       }
     } catch (err) {
@@ -152,6 +150,68 @@ const App = () => {
       console.error('Error:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Generate Cover Letter and Referral Email - Step 2
+  const generateApplicationDocs = async () => {
+    if (!analysis) {
+      setError('Please analyze resume first before generating application documents');
+      return;
+    }
+
+    setLoadingDocs(true);
+    setError('');
+    setSuccess('');
+
+    try {
+      // Combine optimized resume sections into a single text
+      const optimizedResume = `
+        Executive Summary: ${editedSections.executiveSummary}
+        Core Competencies: ${editedSections.coreCompetencies}
+        Key Achievements: ${editedSections.keyAchievements}
+        Technologies: ${editedSections.technologiesLanguages}
+        Experience: ${editedSections.rewrittenExperience}
+      `;
+
+      const response = await fetch(
+        'https://resume-optimizer-n8n.onrender.com/webhook/cover-letter-generator',
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': 'Basic ' + btoa('stahir80:stahir80'),
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            optimizedResume: optimizedResume,
+            originalResume: resumeText,
+            jobDescription: jobDescription,
+            companyName: companyName || 'Hiring Team',
+            roleName: roleName || 'this position',
+            matchingSkills: analysis.matchingSkills || []
+          })
+        }
+      );
+
+      const data = await response.json();
+      console.log('Application docs response:', data);
+      
+      if (data.success && data.documents) {
+        setApplicationDocs(data.documents);
+        setEditedDocs({
+          coverLetter: data.documents.coverLetter || '',
+          referralEmail: data.documents.referralEmail || ''
+        });
+        setSuccess('Cover letter and referral email generated successfully!');
+        setExpandedSection('cover');
+      } else {
+        setError('Failed to generate application documents. Please try again.');
+      }
+    } catch (err) {
+      setError('Network error generating documents. Please try again.');
+      console.error('Error:', err);
+    } finally {
+      setLoadingDocs(false);
     }
   };
 
@@ -163,38 +223,11 @@ const App = () => {
     });
   };
 
-  // Tab styles
-  const tabStyles = {
-    container: {
-      display: 'flex',
-      gap: '10px',
-      marginBottom: '30px',
-      borderBottom: '2px solid #374151',
-      paddingBottom: '0'
-    },
-    tab: {
-      padding: '12px 24px',
-      background: 'transparent',
-      color: '#9ca3af',
-      border: 'none',
-      borderBottom: '3px solid transparent',
-      cursor: 'pointer',
-      fontSize: '16px',
-      fontWeight: '500',
-      transition: 'all 0.3s'
-    },
-    activeTab: {
-      color: '#3b82f6',
-      borderBottom: '3px solid #3b82f6',
-      background: 'linear-gradient(180deg, transparent, rgba(59, 130, 246, 0.1))'
-    }
-  };
-
   return (
     <div style={styles.container}>
       <div style={styles.header}>
         <h1 style={styles.title}>Resume Optimizer AI</h1>
-        <p style={styles.subtitle}>Complete job application toolkit - Resume, Cover Letter, and Referral Email</p>
+        <p style={styles.subtitle}>Two-step process: Optimize resume, then generate application documents</p>
       </div>
 
       {error && <div style={styles.error}>{error}</div>}
@@ -227,13 +260,13 @@ const App = () => {
           <h2 style={styles.sectionTitle}>💼 Job Details</h2>
           <input
             style={{ ...styles.textarea, minHeight: '40px', marginBottom: '10px' }}
-            placeholder="Company Name (optional)"
+            placeholder="Company Name (required for cover letter)"
             value={companyName}
             onChange={(e) => setCompanyName(e.target.value)}
           />
           <input
             style={{ ...styles.textarea, minHeight: '40px', marginBottom: '10px' }}
-            placeholder="Role/Position Title (optional)"
+            placeholder="Role/Position Title"
             value={roleName}
             onChange={(e) => setRoleName(e.target.value)}
           />
@@ -252,237 +285,328 @@ const App = () => {
           onClick={analyzeResume}
           disabled={loading}
         >
-          {loading ? 'Analyzing... (may take 30-60s on first run)' : '🚀 Generate Application Package'}
+          {loading ? 'Analyzing Resume... (30-60s)' : '🔍 Step 1: Analyze & Optimize Resume'}
         </button>
       </div>
 
       {loading && (
         <div style={styles.loading}>
-          <p>🔍 Analyzing and generating content...</p>
+          <p>🔍 Analyzing resume and generating optimized sections...</p>
           <p style={{ fontSize: '14px', marginTop: '10px' }}>
-            This may take 30-60 seconds on first request
+            This may take 30-60 seconds
           </p>
         </div>
       )}
 
       {analysis && (
-        <div style={styles.resultsSection}>
-          <h2 style={styles.subheading}>Application Package Ready</h2>
+        <>
+          {/* Resume Optimization Results */}
+          <div style={{ ...styles.resultsSection, marginBottom: '30px' }}>
+            <div>
+              <div 
+                style={{ 
+                  display: 'flex', 
+                  alignItems: 'center',
+                  marginBottom: '20px',
+                  cursor: 'pointer'
+                }}
+                onClick={() => setExpandedSection(expandedSection === 'resume' ? '' : 'resume')}
+              >
+                <h2 style={{ ...styles.subheading, marginRight: 'auto' }}>
+                  {expandedSection === 'resume' ? '▼' : '▶'} Resume Optimization Results
+                </h2>
+              </div>
+              <div style={{ 
+                display: 'flex', 
+                gap: '15px',
+                marginBottom: '20px'
+              }}>
+                <div style={{ 
+                  ...styles.scoreItem, 
+                  flex: '1',
+                  textAlign: 'center',
+                  padding: '15px',
+                  background: 'linear-gradient(135deg, #1e293b 0%, #334155 100%)',
+                  borderRadius: '8px',
+                  border: '1px solid #475569'
+                }}>
+                  <div style={styles.scoreLabel}>Match</div>
+                  <div style={{ ...styles.scoreValue, fontSize: '28px', color: '#3b82f6' }}>{analysis.matchScore}%</div>
+                </div>
+                <div style={{ 
+                  ...styles.scoreItem, 
+                  flex: '1',
+                  textAlign: 'center',
+                  padding: '15px',
+                  background: 'linear-gradient(135deg, #1e293b 0%, #334155 100%)',
+                  borderRadius: '8px',
+                  border: '1px solid #475569'
+                }}>
+                  <div style={styles.scoreLabel}>Skills Match</div>
+                  <div style={{ ...styles.scoreValue, fontSize: '28px', color: '#3b82f6' }}>{analysis.matchingSkills?.length || 0}</div>
+                </div>
+                <div style={{ 
+                  ...styles.scoreItem, 
+                  flex: '1',
+                  textAlign: 'center',
+                  padding: '15px',
+                  background: 'linear-gradient(135deg, #1e293b 0%, #334155 100%)',
+                  borderRadius: '8px',
+                  border: '1px solid #475569'
+                }}>
+                  <div style={styles.scoreLabel}>Gap Skills</div>
+                  <div style={{ ...styles.scoreValue, fontSize: '28px', color: '#3b82f6' }}>{analysis.missingSkills?.length || 0}</div>
+                </div>
+              </div>
+            </div>
 
-          <div style={styles.scoreCard}>
-            <div style={styles.scoreItem}>
-              <div style={styles.scoreLabel}>Match Score</div>
-              <div style={styles.scoreValue}>{analysis.matchScore}%</div>
-            </div>
-            <div style={styles.scoreItem}>
-              <div style={styles.scoreLabel}>Matching Skills</div>
-              <div style={styles.scoreValue}>{analysis.matchingSkills?.length || 0}</div>
-            </div>
-            <div style={styles.scoreItem}>
-              <div style={styles.scoreLabel}>Missing Skills</div>
-              <div style={styles.scoreValue}>{analysis.missingSkills?.length || 0}</div>
+            {expandedSection === 'resume' && (
+              <div>
+                <div style={styles.warning}>
+                  💡 Edit sections below, then copy each section to update your resume
+                </div>
+
+                {/* Executive Summary */}
+                <div style={{ marginBottom: '25px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <h3 style={styles.editorLabel}>Executive Summary</h3>
+                    <button
+                      onClick={() => copySectionToClipboard('summary', editedSections.executiveSummary)}
+                      style={{ ...styles.buttonSecondary, padding: '5px 10px', fontSize: '12px' }}
+                    >
+                      {copied === 'summary' ? '✓ Copied!' : '📋 Copy'}
+                    </button>
+                  </div>
+                  <div
+                    contentEditable
+                    style={styles.editor}
+                    dangerouslySetInnerHTML={{ __html: editedSections.executiveSummary }}
+                    onBlur={(e) => setEditedSections({
+                      ...editedSections,
+                      executiveSummary: e.target.innerText
+                    })}
+                  />
+                </div>
+
+                {/* Core Competencies */}
+                <div style={{ marginBottom: '25px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <h3 style={styles.editorLabel}>Core Competencies</h3>
+                    <button
+                      onClick={() => copySectionToClipboard('competencies', editedSections.coreCompetencies)}
+                      style={{ ...styles.buttonSecondary, padding: '5px 10px', fontSize: '12px' }}
+                    >
+                      {copied === 'competencies' ? '✓ Copied!' : '📋 Copy'}
+                    </button>
+                  </div>
+                  <div
+                    contentEditable
+                    style={styles.editor}
+                    dangerouslySetInnerHTML={{ __html: editedSections.coreCompetencies }}
+                    onBlur={(e) => setEditedSections({
+                      ...editedSections,
+                      coreCompetencies: e.target.innerText
+                    })}
+                  />
+                </div>
+
+                {/* Key Achievements */}
+                <div style={{ marginBottom: '25px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <h3 style={styles.editorLabel}>Key Achievements</h3>
+                    <button
+                      onClick={() => copySectionToClipboard('achievements', editedSections.keyAchievements)}
+                      style={{ ...styles.buttonSecondary, padding: '5px 10px', fontSize: '12px' }}
+                    >
+                      {copied === 'achievements' ? '✓ Copied!' : '📋 Copy'}
+                    </button>
+                  </div>
+                  <div
+                    contentEditable
+                    style={styles.editor}
+                    dangerouslySetInnerHTML={{ __html: editedSections.keyAchievements }}
+                    onBlur={(e) => setEditedSections({
+                      ...editedSections,
+                      keyAchievements: e.target.innerText
+                    })}
+                  />
+                </div>
+
+                {/* Technologies & Languages */}
+                <div style={{ marginBottom: '25px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <h3 style={styles.editorLabel}>Technologies & Languages</h3>
+                    <button
+                      onClick={() => copySectionToClipboard('tech', editedSections.technologiesLanguages)}
+                      style={{ ...styles.buttonSecondary, padding: '5px 10px', fontSize: '12px' }}
+                    >
+                      {copied === 'tech' ? '✓ Copied!' : '📋 Copy'}
+                    </button>
+                  </div>
+                  <div
+                    contentEditable
+                    style={styles.editor}
+                    dangerouslySetInnerHTML={{ __html: editedSections.technologiesLanguages }}
+                    onBlur={(e) => setEditedSections({
+                      ...editedSections,
+                      technologiesLanguages: e.target.innerText
+                    })}
+                  />
+                </div>
+
+                {/* Rewritten Experience */}
+                <div style={{ marginBottom: '25px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <h3 style={styles.editorLabel}>Optimized Experience (Last 2 Positions)</h3>
+                    <button
+                      onClick={() => copySectionToClipboard('experience', editedSections.rewrittenExperience)}
+                      style={{ ...styles.buttonSecondary, padding: '5px 10px', fontSize: '12px' }}
+                    >
+                      {copied === 'experience' ? '✓ Copied!' : '📋 Copy'}
+                    </button>
+                  </div>
+                  <div
+                    contentEditable
+                    style={{ ...styles.editor, minHeight: '200px' }}
+                    dangerouslySetInnerHTML={{ __html: editedSections.rewrittenExperience }}
+                    onBlur={(e) => setEditedSections({
+                      ...editedSections,
+                      rewrittenExperience: e.target.innerText
+                    })}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Step 2: Generate Application Documents */}
+          <div style={{ textAlign: 'center', marginBottom: '30px' }}>
+            <div style={{ 
+              background: 'linear-gradient(135deg, #1e293b 0%, #334155 100%)',
+              padding: '30px',
+              borderRadius: '12px',
+              border: '1px solid #475569'
+            }}>
+              <h3 style={{ color: '#f3f4f6', marginBottom: '10px' }}>Ready for the next step?</h3>
+              <p style={{ color: '#9ca3af', marginBottom: '20px' }}>
+                Generate a tailored cover letter and referral email based on your optimized resume
+              </p>
+              <button
+                style={{ ...styles.button, background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)' }}
+                onClick={generateApplicationDocs}
+                disabled={loadingDocs}
+              >
+                {loadingDocs ? 'Generating Documents...' : '📝 Step 2: Generate Cover Letter & Referral Email'}
+              </button>
             </div>
           </div>
 
-          {/* Tabs */}
-          <div style={tabStyles.container}>
-            <button
-              style={{ ...tabStyles.tab, ...(activeTab === 'sections' ? tabStyles.activeTab : {}) }}
-              onClick={() => setActiveTab('sections')}
-            >
-              📝 Resume Sections
-            </button>
-            <button
-              style={{ ...tabStyles.tab, ...(activeTab === 'cover' ? tabStyles.activeTab : {}) }}
-              onClick={() => setActiveTab('cover')}
-            >
-              📄 Cover Letter
-            </button>
-            <button
-              style={{ ...tabStyles.tab, ...(activeTab === 'email' ? tabStyles.activeTab : {}) }}
-              onClick={() => setActiveTab('email')}
-            >
-              ✉️ Referral Email
-            </button>
-          </div>
-
-          {/* Resume Sections Tab */}
-          {activeTab === 'sections' && (
-            <div>
-              <div style={styles.warning}>
-                💡 Edit sections below, then copy each section and paste into your resume document.
-              </div>
-
-              {/* Executive Summary */}
-              <div style={{ marginBottom: '25px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <h3 style={styles.editorLabel}>Executive Summary</h3>
-                  <button
-                    onClick={() => copySectionToClipboard('summary', editedSections.executiveSummary)}
-                    style={{ ...styles.buttonSecondary, padding: '5px 10px', fontSize: '12px' }}
-                  >
-                    {copied === 'summary' ? '✓ Copied!' : '📋 Copy'}
-                  </button>
-                </div>
-                <div
-                  contentEditable
-                  style={styles.editor}
-                  dangerouslySetInnerHTML={{ __html: editedSections.executiveSummary }}
-                  onBlur={(e) => setEditedSections({
-                    ...editedSections,
-                    executiveSummary: e.target.innerText
-                  })}
-                />
-              </div>
-
-              {/* Core Competencies */}
-              <div style={{ marginBottom: '25px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <h3 style={styles.editorLabel}>Core Competencies</h3>
-                  <button
-                    onClick={() => copySectionToClipboard('competencies', editedSections.coreCompetencies)}
-                    style={{ ...styles.buttonSecondary, padding: '5px 10px', fontSize: '12px' }}
-                  >
-                    {copied === 'competencies' ? '✓ Copied!' : '📋 Copy'}
-                  </button>
-                </div>
-                <div
-                  contentEditable
-                  style={styles.editor}
-                  dangerouslySetInnerHTML={{ __html: editedSections.coreCompetencies }}
-                  onBlur={(e) => setEditedSections({
-                    ...editedSections,
-                    coreCompetencies: e.target.innerText
-                  })}
-                />
-              </div>
-
-              {/* Key Achievements */}
-              <div style={{ marginBottom: '25px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <h3 style={styles.editorLabel}>Key Achievements</h3>
-                  <button
-                    onClick={() => copySectionToClipboard('achievements', editedSections.keyAchievements)}
-                    style={{ ...styles.buttonSecondary, padding: '5px 10px', fontSize: '12px' }}
-                  >
-                    {copied === 'achievements' ? '✓ Copied!' : '📋 Copy'}
-                  </button>
-                </div>
-                <div
-                  contentEditable
-                  style={styles.editor}
-                  dangerouslySetInnerHTML={{ __html: editedSections.keyAchievements }}
-                  onBlur={(e) => setEditedSections({
-                    ...editedSections,
-                    keyAchievements: e.target.innerText
-                  })}
-                />
-              </div>
-
-              {/* Technologies & Languages */}
-              <div style={{ marginBottom: '25px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <h3 style={styles.editorLabel}>Technologies & Languages</h3>
-                  <button
-                    onClick={() => copySectionToClipboard('tech', editedSections.technologiesLanguages)}
-                    style={{ ...styles.buttonSecondary, padding: '5px 10px', fontSize: '12px' }}
-                  >
-                    {copied === 'tech' ? '✓ Copied!' : '📋 Copy'}
-                  </button>
-                </div>
-                <div
-                  contentEditable
-                  style={styles.editor}
-                  dangerouslySetInnerHTML={{ __html: editedSections.technologiesLanguages }}
-                  onBlur={(e) => setEditedSections({
-                    ...editedSections,
-                    technologiesLanguages: e.target.innerText
-                  })}
-                />
-              </div>
-
-              {/* Rewritten Experience */}
-              <div style={{ marginBottom: '25px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <h3 style={styles.editorLabel}>Rewritten Experience (Last 2 Positions)</h3>
-                  <button
-                    onClick={() => copySectionToClipboard('experience', editedSections.rewrittenExperience)}
-                    style={{ ...styles.buttonSecondary, padding: '5px 10px', fontSize: '12px' }}
-                  >
-                    {copied === 'experience' ? '✓ Copied!' : '📋 Copy'}
-                  </button>
-                </div>
-                <div
-                  contentEditable
-                  style={{ ...styles.editor, minHeight: '200px' }}
-                  dangerouslySetInnerHTML={{ __html: editedSections.rewrittenExperience }}
-                  onBlur={(e) => setEditedSections({
-                    ...editedSections,
-                    rewrittenExperience: e.target.innerText
-                  })}
-                />
-              </div>
+          {loadingDocs && (
+            <div style={styles.loading}>
+              <p>✍️ Crafting personalized cover letter and referral email...</p>
+              <p style={{ fontSize: '14px', marginTop: '10px' }}>
+                This may take 20-30 seconds
+              </p>
             </div>
           )}
 
-          {/* Cover Letter Tab */}
-          {activeTab === 'cover' && (
-            <div>
-              <div style={styles.warning}>
-                💡 Personalized cover letter highlighting your fit for {companyName || 'the company'} and {roleName || 'this role'}.
-              </div>
-              <div style={{ marginBottom: '25px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <h3 style={styles.editorLabel}>Cover Letter</h3>
-                  <button
-                    onClick={() => copySectionToClipboard('cover', editedSections.coverLetter)}
-                    style={{ ...styles.buttonSecondary, padding: '5px 10px', fontSize: '12px' }}
-                  >
-                    {copied === 'cover' ? '✓ Copied!' : '📋 Copy'}
-                  </button>
+          {/* Application Documents */}
+          {applicationDocs && (
+            <>
+              {/* Cover Letter */}
+              <div style={{ ...styles.resultsSection, marginBottom: '30px' }}>
+                <div 
+                  style={{ 
+                    display: 'flex', 
+                    justifyContent: 'space-between', 
+                    alignItems: 'center',
+                    marginBottom: '20px',
+                    cursor: 'pointer'
+                  }}
+                  onClick={() => setExpandedSection(expandedSection === 'cover' ? '' : 'cover')}
+                >
+                  <h2 style={styles.subheading}>
+                    {expandedSection === 'cover' ? '▼' : '▶'} Cover Letter
+                  </h2>
                 </div>
-                <div
-                  contentEditable
-                  style={{ ...styles.editor, minHeight: '400px' }}
-                  dangerouslySetInnerHTML={{ __html: editedSections.coverLetter }}
-                  onBlur={(e) => setEditedSections({
-                    ...editedSections,
-                    coverLetter: e.target.innerText
-                  })}
-                />
-              </div>
-            </div>
-          )}
 
-          {/* Referral Email Tab */}
-          {activeTab === 'email' && (
-            <div>
-              <div style={styles.warning}>
-                💡 Email template for internal referral. Share with employees at {companyName || 'the company'} to forward to HR/Hiring Manager.
+                {expandedSection === 'cover' && (
+                  <div>
+                    <div style={styles.warning}>
+                      💡 Personalized cover letter for {companyName || 'the company'} - {roleName || 'this role'}
+                    </div>
+                    <div style={{ marginBottom: '25px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                        <h3 style={styles.editorLabel}>Cover Letter</h3>
+                        <button
+                          onClick={() => copySectionToClipboard('cover', editedDocs.coverLetter)}
+                          style={{ ...styles.buttonSecondary, padding: '5px 10px', fontSize: '12px' }}
+                        >
+                          {copied === 'cover' ? '✓ Copied!' : '📋 Copy'}
+                        </button>
+                      </div>
+                      <div
+                        contentEditable
+                        style={{ ...styles.editor, minHeight: '400px', whiteSpace: 'pre-wrap' }}
+                        dangerouslySetInnerHTML={{ __html: editedDocs.coverLetter }}
+                        onBlur={(e) => setEditedDocs({
+                          ...editedDocs,
+                          coverLetter: e.target.innerText
+                        })}
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
-              <div style={{ marginBottom: '25px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <h3 style={styles.editorLabel}>Referral Email Template</h3>
-                  <button
-                    onClick={() => copySectionToClipboard('email', editedSections.referralEmail)}
-                    style={{ ...styles.buttonSecondary, padding: '5px 10px', fontSize: '12px' }}
-                  >
-                    {copied === 'email' ? '✓ Copied!' : '📋 Copy'}
-                  </button>
+
+              {/* Referral Email */}
+              <div style={styles.resultsSection}>
+                <div 
+                  style={{ 
+                    display: 'flex', 
+                    justifyContent: 'space-between', 
+                    alignItems: 'center',
+                    marginBottom: '20px',
+                    cursor: 'pointer'
+                  }}
+                  onClick={() => setExpandedSection(expandedSection === 'email' ? '' : 'email')}
+                >
+                  <h2 style={styles.subheading}>
+                    {expandedSection === 'email' ? '▼' : '▶'} Referral Email Template
+                  </h2>
                 </div>
-                <div
-                  contentEditable
-                  style={{ ...styles.editor, minHeight: '350px' }}
-                  dangerouslySetInnerHTML={{ __html: editedSections.referralEmail }}
-                  onBlur={(e) => setEditedSections({
-                    ...editedSections,
-                    referralEmail: e.target.innerText
-                  })}
-                />
+
+                {expandedSection === 'email' && (
+                  <div>
+                    <div style={styles.warning}>
+                      💡 Email template for employees at {companyName || 'the company'} to refer you
+                    </div>
+                    <div style={{ marginBottom: '25px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                        <h3 style={styles.editorLabel}>Referral Email</h3>
+                        <button
+                          onClick={() => copySectionToClipboard('email', editedDocs.referralEmail)}
+                          style={{ ...styles.buttonSecondary, padding: '5px 10px', fontSize: '12px' }}
+                        >
+                          {copied === 'email' ? '✓ Copied!' : '📋 Copy'}
+                        </button>
+                      </div>
+                      <div
+                        contentEditable
+                        style={{ ...styles.editor, minHeight: '350px', whiteSpace: 'pre-wrap' }}
+                        dangerouslySetInnerHTML={{ __html: editedDocs.referralEmail }}
+                        onBlur={(e) => setEditedDocs({
+                          ...editedDocs,
+                          referralEmail: e.target.innerText
+                        })}
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
-            </div>
+            </>
           )}
-        </div>
+        </>
       )}
     </div>
   );

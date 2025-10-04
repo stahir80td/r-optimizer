@@ -2,6 +2,7 @@
   "name": "resume-optimizer-frontend",
   "version": "1.0.0",
   "private": true,
+  "homepage": ".",
   "dependencies": {
     "docx": "^8.5.0",
     "jspdf": "^2.5.2",
@@ -13,7 +14,7 @@
   },
   "scripts": {
     "start": "react-scripts start",
-    "build": "react-scripts build",
+    "build": "REACT_APP_N8N_URL=https://resume-optimizer-n8n.onrender.com react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
     "serve": "serve -s build -l 10000"

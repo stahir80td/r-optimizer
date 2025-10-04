@@ -14,8 +14,8 @@ services:
   - type: web
     name: resume-optimizer-frontend
     runtime: docker
-    dockerfilePath: ./frontend/Dockerfile
-    rootDir: frontend
+    dockerfilePath: ./src/Dockerfile
+    rootDir: .
     branch: main
     healthCheckPath: /
     envVars:
