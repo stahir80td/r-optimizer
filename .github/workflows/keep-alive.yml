@@ -1,8 +1,8 @@
-name: Keep n8n Alive
+name: Keep Services Alive
 
 on:
   schedule:
-    - cron: '*/13 * * * *'  # Every 14 minutes
+    - cron: '*/13 * * * *'  # Every 13 minutes
   workflow_dispatch:  # Allows manual trigger from GitHub UI
 
 jobs:
@@ -12,4 +12,39 @@ jobs:
       - name: Ping n8n instance
         run: |
           curl -I https://resume-optimizer-n8n.onrender.com
-          echo "Pinged at $(date)"
+          echo "Pinged n8n at $(date)"
+      
+      - name: Ping Resume Optimizer UI
+        run: |
+          curl -I https://resume-optimizer-ui.onrender.com
+          echo "Pinged Resume Optimizer UI at $(date)"
+      
+      - name: Ping Day Planner
+        run: |
+          curl -I https://day-planner-sgst.onrender.com
+          echo "Pinged Day Planner at $(date)"
+      
+      - name: Ping SRE AI Dashboard
+        run: |
+          curl -I https://sre-ai-dashboard.onrender.com
+          echo "Pinged SRE AI Dashboard at $(date)"
+      
+      - name: Ping System Design
+        run: |
+          curl -I https://system-design-vjut.onrender.com
+          echo "Pinged System Design at $(date)"
+      
+      - name: Ping DevOps Triage
+        run: |
+          curl -I https://sre-devops-triage.onrender.com
+          echo "Pinged DevOps Triage at $(date)"
+      
+      - name: Ping DevOps Triage API
+        run: |
+          curl -I https://devops-triage-api.onrender.com
+          echo "Pinged DevOps Triage API at $(date)"
+      
+      - name: Ping Chat Bot
+        run: |
+          curl -I https://agent-xf0i.onrender.com
+          echo "Pinged Chat Bot at $(date)"
