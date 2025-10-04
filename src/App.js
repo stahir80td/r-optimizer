@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import * as pdfjsLib from 'pdfjs-dist';
 import mammoth from 'mammoth';
 import { styles } from './styles';
+import Architecture from './Architecture';
 
 // Configure PDF.js worker
 pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
@@ -13,6 +14,7 @@ const App = () => {
   const [roleName, setRoleName] = useState('');
   const [analysis, setAnalysis] = useState(null);
   const [applicationDocs, setApplicationDocs] = useState(null);
+  const [currentPage, setCurrentPage] = useState('dashboard'); // 'dashboard' or 'architecture'
   const [editedSections, setEditedSections] = useState({
     executiveSummary: '',
     coreCompetencies: '',
@@ -43,6 +45,11 @@ const App = () => {
       document.body.style.margin = '';
     };
   }, []);
+
+  // Show Architecture page if selected
+if (currentPage === 'architecture') {
+  return <Architecture onBack={() => setCurrentPage('dashboard')} />;
+}
 
   // File handling for both PDF and Word
   const handleFileUpload = async (event) => {
@@ -228,6 +235,12 @@ const App = () => {
       <div style={styles.header}>
         <h1 style={styles.title}>Resume Optimizer AI</h1>
         <p style={styles.subtitle}>Two-step process: Optimize resume, then generate application documents</p>
+        <button 
+  onClick={() => setCurrentPage('architecture')}
+    style={styles.architectureButton}
+  >
+  🏗️ Architecture
+</button>
       </div>
 
       {error && <div style={styles.error}>{error}</div>}
@@ -237,17 +250,33 @@ const App = () => {
         <div style={styles.section}>
           <h2 style={styles.sectionTitle}>📄 Upload Resume</h2>
           <div style={styles.fileInput}>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".pdf,.doc,.docx"
-              onChange={handleFileUpload}
-              style={styles.fileInputElement}
-            />
-            <p style={{ fontSize: '12px', color: '#9ca3af', marginTop: '8px' }}>
-              Supports PDF and Word documents
-            </p>
-          </div>
+  <label style={{
+    display: 'inline-block',  // Changed from 'block' to 'inline-block'
+    padding: '12px 20px',
+    background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+    color: '#fff',
+    border: 'none',
+    borderRadius: '8px',
+    fontSize: '14px',
+    cursor: 'pointer',
+    fontWeight: '600',
+    textAlign: 'center',
+    transition: 'all 0.3s ease',
+    marginBottom: '8px',  // Add margin bottom
+  }}>
+    <input
+      ref={fileInputRef}
+      type="file"
+      accept=".pdf,.doc,.docx"
+      onChange={handleFileUpload}
+      style={{ display: 'none' }}
+    />
+    📁 {resumeText ? 'File Loaded - Click to Change' : 'Choose File'}
+  </label>
+  <p style={{ fontSize: '12px', color: '#9ca3af', marginTop: '8px' }}>
+    Supports PDF and Word documents
+  </p>
+</div>
           <textarea
             style={styles.textarea}
             placeholder="Or paste your resume text here..."
@@ -358,6 +387,65 @@ const App = () => {
                   <div style={{ ...styles.scoreValue, fontSize: '28px', color: '#3b82f6' }}>{analysis.missingSkills?.length || 0}</div>
                 </div>
               </div>
+              {/* Skills badges section */}
+              {(analysis.matchingSkills?.length > 0 || analysis.missingSkills?.length > 0) && (
+                <div style={{ marginBottom: '25px' }}>
+                  {/* Matching Skills */}
+                  {analysis.matchingSkills?.length > 0 && (
+                    <div style={{ marginBottom: '20px' }}>
+                      <h4 style={{ color: '#10b981', fontSize: '14px', marginBottom: '10px', fontWeight: '600' }}>
+                        ✓ Matching Skills
+                      </h4>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                        {analysis.matchingSkills.map((skillItem, index) => (
+                          <span
+                            key={index}
+                            style={{
+                              background: 'linear-gradient(135deg, #059669 0%, #10b981 100%)',
+                              color: '#fff',
+                              padding: '6px 14px',
+                              borderRadius: '20px',
+                              fontSize: '13px',
+                              fontWeight: '500',
+                              display: 'inline-block',
+                            }}
+                            title={typeof skillItem === 'object' && skillItem.evidence ? skillItem.evidence : ''}
+                          >
+                            {typeof skillItem === 'object' ? skillItem.skill : skillItem}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Missing/Gap Skills */}
+                  {analysis.missingSkills?.length > 0 && (
+                    <div>
+                      <h4 style={{ color: '#ef4444', fontSize: '14px', marginBottom: '10px', fontWeight: '600' }}>
+                        ⚠ Gap Skills to Address
+                      </h4>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                        {analysis.missingSkills.map((skill, index) => (
+                          <span
+                            key={index}
+                            style={{
+                              background: 'linear-gradient(135deg, #dc2626 0%, #ef4444 100%)',
+                              color: '#fff',
+                              padding: '6px 14px',
+                              borderRadius: '20px',
+                              fontSize: '13px',
+                              fontWeight: '500',
+                              display: 'inline-block',
+                            }}
+                          >
+                            {typeof skill === 'object' ? skill.skill : skill}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {expandedSection === 'resume' && (

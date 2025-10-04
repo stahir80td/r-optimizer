@@ -246,5 +246,51 @@ export const styles = {
     marginBottom: '15px',
     fontSize: '14px',
     border: '1px solid #c2410c'
-  }
+  },
+  fileInput: {
+    marginBottom: '15px',
+  },
+  
+  fileInputElement: {
+    display: 'block',
+    width: '100%',
+    padding: '12px 20px',
+    background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+    color: '#fff',
+    border: 'none',
+    borderRadius: '8px',
+    fontSize: '14px',
+    cursor: 'pointer',
+    fontWeight: '600',
+    transition: 'all 0.3s ease',
+  },
+  
+  // Make sure your main button style matches
+  button: {
+    background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+    color: '#fff',
+    border: 'none',
+    padding: '12px 32px',
+    borderRadius: '8px',
+    fontSize: '16px',
+    cursor: 'pointer',
+    transition: 'all 0.3s ease',
+    fontWeight: '600',
+  },
+  
+  // And the Architecture button in App.js should be:
+  architectureButton: {
+    position: 'absolute',
+    right: '20px',
+    top: '20px',
+    background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+    color: '#fff',
+    border: 'none',
+    padding: '10px 20px',
+    borderRadius: '8px',
+    fontSize: '14px',
+    cursor: 'pointer',
+    transition: 'all 0.3s ease',
+    fontWeight: '600',
+  },
 };
