@@ -14,16 +14,16 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -352,
-        -16
+        -80,
+        -224
       ],
-      "id": "83976bf6-93c0-41d9-86a3-75a3ee1b214f",
+      "id": "7ca8a08d-9192-4a24-b9e9-fc108c1f185e",
       "name": "Webhook",
       "webhookId": "e6e48ef3-0a1c-4d6d-9511-dbbad1c936f6",
       "credentials": {
         "httpBasicAuth": {
-          "id": "hUkiVcDSZm1k969g",
-          "name": "Unnamed credential"
+          "id": "gjw4jimM6EZiDdIi",
+          "name": "Unnamed credential 2"
         }
       }
     },
@@ -38,16 +38,16 @@
             {}
           ]
         },
-        "jsonBody": "={\n  \"contents\": [{\n    \"parts\": [{\n      \"text\": {{ JSON.stringify($json.prompt) }}\n    }]\n  }],\n  \"generationConfig\": {\n    \"temperature\": 0.7,\n    \"maxOutputTokens\": 4096\n  }\n}",
+        "jsonBody": "={\n  \"contents\": [{\n    \"parts\": [{\n      \"text\": {{ JSON.stringify($json.prompt) }}\n    }]\n  }],\n  \"generationConfig\": {\n    \"temperature\": 0.7,\n    \"maxOutputTokens\": 8096\n  }\n}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        144,
-        -16
+        416,
+        -224
       ],
-      "id": "a7b821f6-08af-45cd-b734-0841911805ca",
+      "id": "e94f26bb-84c8-4d1b-aa43-56d8a427ff45",
       "name": "Request Node for Gemini API",
       "retryOnFail": true,
       "maxTries": 2,
@@ -55,15 +55,15 @@
     },
     {
       "parameters": {
-        "jsCode": "// Extract data from webhook\nconst resumeText = $input.first().json.body.resume || \"\";\nconst jobDescription = $input.first().json.body.jobDescription || \"\";\n\n// Prepare data for Gemini\nreturn {\n  resumeText: resumeText,\n  jobDescription: jobDescription,\n  prompt: `You are a professional resume writer. Create powerful, achievement-focused content that positions this candidate perfectly for the role.\n\nResume: ${resumeText}\n\nJob Description: ${jobDescription}\n\nGenerate optimized resume sections that:\n1. NEVER mention gaps, missing skills, or weaknesses\n2. Use strong action verbs and quantified achievements\n3. Mirror keywords from the job description\n4. Focus on relevant accomplishments and impact\n\nCRITICAL: Return ONLY valid JSON with no markdown, backticks, or explanations:\n{\n  \"matchScore\": <number 0-100 based on alignment>,\n  \"matchingSkills\": [\n    {\n      \"skill\": \"<skill name>\",\n      \"evidence\": \"<where demonstrated in resume>\",\n      \"relevance\": \"High/Medium\"\n    }\n  ],\n  \"missingSkills\": [<list skills to learn, max 5>],\n  \"improvements\": [<3 specific suggestions>],\n  \"executiveSummary\": \"<Write a powerful 3-4 sentence executive summary in first person implied (no 'I' or 'the candidate'). Start with title and years of experience. Highlight 2-3 major achievements with quantified results. End with value proposition for THIS specific role. Make it compelling and ATS-friendly using keywords from JD.>\",\n  \"coreCompetencies\": [<6-8 competencies that match JD requirements>],\n  \"keyAchievements\": \"• <Achievement 1 with quantified impact>\\n• <Achievement 2 with quantified impact>\\n• <Achievement 3 with quantified impact>\\n• <Achievement 4 with quantified impact>\",\n  \"technologiesLanguages\": \"Languages: <list relevant programming languages>\\nFrameworks: <list relevant frameworks>\\nCloud & Infrastructure: <list cloud/infrastructure tools>\\nDatabases: <list database technologies>\\nTools & Platforms: <list other relevant tools>\",\n  \"coverLetter\": \"<Write a compelling cover letter (3-4 paragraphs) that: 1) Opens with enthusiasm for the specific role and company, 2) Highlights 2-3 specific achievements from the resume that directly relate to key requirements in the JD, 3) Explains how past experience prepares them for this role's challenges, 4) Closes with enthusiasm and next steps. Use professional but engaging tone.>\",\n\n\"referralEmail\": \"<Write a referral email template that an employee can send to HR/Hiring Manager. Include: Subject line, Brief intro of the candidate, 2-3 specific reasons why they're a great fit based on resume-JD match, Their key achievements relevant to the role, Request for consideration. Keep it concise but impactful.>\",\n\n\"rewrittenExperience\": \"<Extract the last 2 job positions from the resume. Rewrite their bullet points to: 1) Start with strong action verbs, 2) Emphasize skills/technologies mentioned in the JD, 3) Quantify achievements where possible, 4) Highlight relevant responsibilities that match JD requirements. Keep company names, titles, and dates unchanged.>\"\n}\n\nRemember: Write AS the candidate's resume, not ABOUT the candidate. Make every word sell their strengths.`\n};"
+        "jsCode": "// Extract data from webhook\nconst resumeText = $input.first().json.body.resume || \"\";\nconst jobDescription = $input.first().json.body.jobDescription || \"\";\n\n// Prepare data for Gemini\nreturn {\n  resumeText: resumeText,\n  jobDescription: jobDescription,\n  prompt: `You are a professional resume writer. Create powerful, achievement-focused content that positions this candidate perfectly for the role.\n\nResume: ${resumeText}\n\nJob Description: ${jobDescription}\n\nGenerate optimized resume sections that:\n1. NEVER mention gaps, missing skills, or weaknesses\n2. Use strong action verbs and quantified achievements\n3. Mirror keywords from the job description\n4. Focus on relevant accomplishments and impact\n\nCRITICAL: Return ONLY valid JSON with no markdown, backticks, or explanations:\n{\n  \"matchScore\": <number 0-100 based on alignment>,\n  \"matchingSkills\": [\n    {\n      \"skill\": \"<skill name>\",\n      \"evidence\": \"<where demonstrated in resume>\",\n      \"relevance\": \"High/Medium\"\n    }\n  ],\n  \"missingSkills\": [<list skills to learn, max 5>],\n  \"improvements\": [<3 specific suggestions>],\n  \"executiveSummary\": \"<Write a powerful 3-4 sentence executive summary in first person implied (no 'I' or 'the candidate'). Start with title and years of experience. Highlight 2-3 major achievements with quantified results. End with value proposition for THIS specific role. Make it compelling and ATS-friendly using keywords from JD.>\",\n  \"coreCompetencies\": [<6-8 competencies that match JD requirements>],\n  \"keyAchievements\": \"• <Achievement 1 with quantified impact>\\n• <Achievement 2 with quantified impact>\\n• <Achievement 3 with quantified impact>\\n• <Achievement 4 with quantified impact>\",\n  \"technologiesLanguages\": \"Languages: <list relevant programming languages>\\nFrameworks: <list relevant frameworks>\\nCloud & Infrastructure: <list cloud/infrastructure tools>\\nDatabases: <list database technologies>\\nTools & Platforms: <list other relevant tools>\",\n  \n\"rewrittenExperience\": \"<Extract the last 2 job positions from the resume. Rewrite their bullet points to: 1) Start with strong action verbs, 2) Emphasize skills/technologies mentioned in the JD, 3) Quantify achievements where possible, 4) Highlight relevant responsibilities that match JD requirements. Keep company names, titles, and dates unchanged.>\"\n}\n\nRemember: Write AS the candidate's resume, not ABOUT the candidate. Make every word sell their strengths.`\n};"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -96,
-        -16
+        176,
+        -224
       ],
-      "id": "57ed4d07-fdec-43a1-8f7a-28b577b103ad",
+      "id": "c72880ec-65de-4686-9cdc-a4e07146ef7e",
       "name": "Code in JavaScript"
     },
     {
@@ -73,10 +73,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        352,
-        -16
+        624,
+        -224
       ],
-      "id": "03119699-dba1-4258-8c56-71c8ff2f84cd",
+      "id": "8c5fe4a8-dc65-4711-8f04-905be52b768d",
       "name": "Code in JavaScript1"
     }
   ],
@@ -120,11 +120,10 @@
   "settings": {
     "executionOrder": "v1"
   },
-  "versionId": "158ee592-d6f4-40aa-8263-bd34605653ae",
+  "versionId": "cd5841ee-6c33-45e6-893a-969c4995140d",
   "meta": {
-    "templateCredsSetupCompleted": true,
-    "instanceId": "70b10e977545166bf9a23fa9d42b88e612aab0525667744577e8414b6f5684f1"
+    "instanceId": "c2dfc38b07dd494147f022d0c3b2b8f6a73016c3f192e2fff3424df69846854a"
   },
-  "id": "TzgnnjFmTu0GCyJ1",
+  "id": "c9xPYFmf49oeTMLC",
   "tags": []
 }

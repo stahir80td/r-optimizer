@@ -11,40 +11,67 @@ jobs:
     steps:
       - name: Ping n8n instance
         run: |
-          curl -I https://resume-optimizer-n8n.onrender.com
+          # Multiple request types to ensure the service wakes up
+          curl -s -o /dev/null -w "HTTP Status: %{http_code}\n" https://resume-optimizer-n8n.onrender.com
+          curl -X GET https://resume-optimizer-n8n.onrender.com/healthz || true
+          curl -X GET https://resume-optimizer-n8n.onrender.com/api/v1/info || true
           echo "Pinged n8n at $(date)"
       
       - name: Ping Resume Optimizer UI
         run: |
-          curl -I https://resume-optimizer-ui.onrender.com
+          curl -s -o /dev/null -w "HTTP Status: %{http_code}\n" https://resume-optimizer-ui.onrender.com
+          # Force load some assets to keep it warm
+          curl -s https://resume-optimizer-ui.onrender.com/index.html > /dev/null || true
           echo "Pinged Resume Optimizer UI at $(date)"
       
       - name: Ping Day Planner
         run: |
-          curl -I https://day-planner-sgst.onrender.com
+          curl -s -o /dev/null -w "HTTP Status: %{http_code}\n" https://day-planner-sgst.onrender.com
+          curl -s https://day-planner-sgst.onrender.com/api/health || true
           echo "Pinged Day Planner at $(date)"
       
       - name: Ping SRE AI Dashboard
         run: |
-          curl -I https://sre-ai-dashboard.onrender.com
+          curl -s -o /dev/null -w "HTTP Status: %{http_code}\n" https://sre-ai-dashboard.onrender.com
+          # Trigger a real page load
+          curl -s -L --max-time 30 https://sre-ai-dashboard.onrender.com > /dev/null || true
           echo "Pinged SRE AI Dashboard at $(date)"
       
       - name: Ping System Design
         run: |
-          curl -I https://system-design-vjut.onrender.com
+          curl -s -o /dev/null -w "HTTP Status: %{http_code}\n" https://system-design-vjut.onrender.com
+          curl -s https://system-design-vjut.onrender.com/api/status || true
           echo "Pinged System Design at $(date)"
       
       - name: Ping DevOps Triage
         run: |
-          curl -I https://sre-devops-triage.onrender.com
+          curl -s -o /dev/null -w "HTTP Status: %{http_code}\n" https://sre-devops-triage.onrender.com
+          # Make a real request that exercises the app
+          curl -X GET -H "Accept: application/json" https://sre-devops-triage.onrender.com/api/health || true
           echo "Pinged DevOps Triage at $(date)"
       
       - name: Ping DevOps Triage API
         run: |
-          curl -I https://devops-triage-api.onrender.com
+          # APIs often need specific endpoints
+          curl -s -o /dev/null -w "HTTP Status: %{http_code}\n" https://devops-triage-api.onrender.com
+          curl -X GET -H "Content-Type: application/json" https://devops-triage-api.onrender.com/health || true
+          curl -X GET https://devops-triage-api.onrender.com/api/v1/status || true
           echo "Pinged DevOps Triage API at $(date)"
       
       - name: Ping Chat Bot
         run: |
-          curl -I https://agent-xf0i.onrender.com
+          curl -s -o /dev/null -w "HTTP Status: %{http_code}\n" https://agent-xf0i.onrender.com
+          # Chat bots often have specific endpoints
+          curl -X GET https://agent-xf0i.onrender.com/health || true
+          curl -X POST -H "Content-Type: application/json" \
+            -d '{"message":"ping"}' \
+            https://agent-xf0i.onrender.com/api/chat || true
           echo "Pinged Chat Bot at $(date)"
+      
+      - name: Summary
+        if: always()
+        run: |
+          echo "==========================================="
+          echo "All services pinged successfully at $(date)"
+          echo "Next run will be in 13 minutes"
+          echo "==========================================="

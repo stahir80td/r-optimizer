@@ -30,7 +30,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro-latest:generateContent?key=[]",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro-latest:generateContent?key=AIzaSyBzTqNq2Ey2yAE6FTk29JDes2_1M5TqB7w",
         "sendBody": true,
         "specifyBody": "=json",
         "bodyParameters": {
