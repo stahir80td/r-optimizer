@@ -1,0 +1,23 @@
+services:
+  # n8n service
+  - type: web
+    name: resume-optimizer-n8n
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    branch: main
+    healthCheckPath: /healthz
+    envVars:
+      - key: N8N_PORT
+        value: 10000
+
+  # React frontend service
+  - type: web
+    name: resume-optimizer-frontend
+    runtime: docker
+    dockerfilePath: ./frontend/Dockerfile
+    rootDir: frontend
+    branch: main
+    healthCheckPath: /
+    envVars:
+      - key: PORT
+        value: 80

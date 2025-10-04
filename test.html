@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Resume Analyzer Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        h1 {
+            color: #333;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            padding: 12px 24px;
+            font-size: 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        button:disabled {
+            background: #cccccc;
+            cursor: not-allowed;
+        }
+        #result {
+            margin-top: 20px;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 14px;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        .error {
+            color: red;
+            background: #ffe6e6;
+        }
+        .success {
+            color: green;
+            background: #e6ffe6;
+        }
+        .loading {
+            color: blue;
+            background: #e6f3ff;
+        }
+    </style>
+</head>
+<body>
+    <h1>Resume Analyzer Test</h1>
+    
+    <button id="analyzeBtn" onclick="testAnalyzer()">Analyze Resume</button>
+    
+    <div id="result"></div>
+
+    <script>
+    async function testAnalyzer() {
+        const button = document.getElementById('analyzeBtn');
+        const resultDiv = document.getElementById('result');
+        
+        // Disable button during request
+        button.disabled = true;
+        resultDiv.className = 'loading';
+        resultDiv.textContent = 'Sending request to n8n...\n\nNote: First request may take 30-60 seconds if service is sleeping...';
+        
+        const testData = {
+            resume: `John Doe
+Software Engineer | john.doe@email.com | LinkedIn.com/in/johndoe
+
+EXPERIENCE:
+Senior Software Engineer - Tech Corp (2020-Present)
+- Built React applications serving 100k+ users
+- Implemented Node.js microservices with 99.9% uptime
+- Led team of 5 developers using Agile methodology
+- Technologies: React, Node.js, MongoDB, AWS, Docker
+
+Full Stack Developer - StartupXYZ (2018-2020)  
+- Developed Python Django backend APIs
+- Created responsive React frontends
+- Managed PostgreSQL databases
+- Deployed applications on AWS EC2 and S3
+
+SKILLS:
+Languages: JavaScript, Python, TypeScript, SQL
+Frontend: React, Redux, Next.js, HTML/CSS
+Backend: Node.js, Express, Django, REST APIs
+Databases: MongoDB, PostgreSQL, Redis
+Cloud/DevOps: AWS, Docker, Kubernetes, CI/CD
+Tools: Git, Jira, Webpack, Jest`,
+
+            jobDescription: `We are seeking a Senior Full Stack Developer to join our team.
+
+Required Qualifications:
+- 5+ years of experience in software development
+- Strong expertise in React and Node.js
+- Experience with cloud platforms (AWS preferred)
+- Proficiency in both SQL and NoSQL databases
+- Experience with Docker and container orchestration
+- Strong knowledge of REST API design
+
+Nice to Have:
+- Python experience
+- Kubernetes knowledge
+- Leadership or team lead experience
+- Experience with microservices architecture
+- CI/CD pipeline experience`
+        };
+
+        try {
+            const url = 'https://resume-optimizer-n8n.onrender.com/webhook/e6e48ef3-0a1c-4d6d-9511-dbbad1c936f6';
+            
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Authorization': 'Basic ' + btoa('stahir80:stahir80'),
+                    'Content-Type': 'application/json'
+                },
+                mode: 'cors',
+                body: JSON.stringify(testData)
+            });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            resultDiv.className = 'success';
+            resultDiv.textContent = 'Success! Response from n8n:\n\n' + JSON.stringify(data, null, 2);
+            
+        } catch (error) {
+            resultDiv.className = 'error';
+            
+            // Check if it's a CORS error
+            if (error.message === 'Failed to fetch') {
+                resultDiv.innerHTML = `CORS Error detected. Try these solutions:
+
+1. Make sure n8n webhook has CORS headers set:
+   - Access-Control-Allow-Origin: *
+   - Access-Control-Allow-Headers: Content-Type, Authorization
+
+2. Or run this HTML file from a local server:
+   python -m http.server 8000
+   Then visit: http://localhost:8000/test.html
+
+3. Or test directly with curl:
+<pre>
+curl -X POST "${url}" \\
+  -u "stahir80:stahir80" \\
+  -H "Content-Type: application/json" \\
+  -d '{"resume": "test", "jobDescription": "test"}'
+</pre>
+
+Raw error: ${error.message}`;
+            } else {
+                resultDiv.textContent = `Error: ${error.message}`;
+            }
+        } finally {
+            button.disabled = false;
+        }
+    }
+    
+    // Test on page load for debugging
+    console.log('Resume Analyzer Test Page Loaded');
+    console.log('Webhook URL:', 'https://resume-optimizer-n8n.onrender.com/webhook/e6e48ef3-0a1c-4d6d-9511-dbbad1c936f6');
+    </script>
+</body>
+</html>
